@@ -1,4 +1,4 @@
-# Gradle 빌드 결과물 및 캐시
+﻿# Gradle 빌드 결과물 및 캐시
 .gradle/
 build/
 /*/build/
@@ -10,7 +10,7 @@ build/
 *.iws
 .navigation/
 
-# 로컬 환경 설정 및 보안 키 (★깃허브 업로드 절대 금지)
+# 로컬 환경 설정 및 보안 등(깃허브 업로드 금지)
 local.properties
 .DS_Store
 captures/
