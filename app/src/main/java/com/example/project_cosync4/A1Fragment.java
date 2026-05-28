@@ -22,6 +22,13 @@ import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.app.AlertDialog;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.Spinner;
+import android.widget.Toast;
+
+
 public class A1Fragment extends Fragment {
 
     // 자바용 Schedule 데이터 클래스
@@ -51,11 +58,23 @@ public class A1Fragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        saveScheduleData(); // 데이터 임시 저장
-        List<Schedule> loadedSchedules = loadScheduleData(); // 데이터 불러오기
-        renderTimetable(view, loadedSchedules); // 화면 렌더링
+        // + 버튼 이벤트 연결
+        view.findViewById(R.id.btn_add).setOnClickListener(v -> showAddScheduleDialog());
+
+        // 🌟 주의: saveScheduleData()를 여기서 호출하면 매번 초기화되니 삭제하세요!
+
+        // 데이터 불러와서 화면 그리기
+        List<Schedule> loadedSchedules = loadScheduleData();
+        renderTimetable(view, loadedSchedules);
     }
 
+    // 또한, onResume()을 추가해서 다른 화면을 갔다가 돌아와도 데이터가 바로 업데이트되게 합니다.
+    @Override
+    public void onResume() {
+        super.onResume();
+        List<Schedule> loadedSchedules = loadScheduleData();
+        renderTimetable(getView(), loadedSchedules);
+    }
     private void renderTimetable(View view, List<Schedule> schedules) {
         // 가장 늦게 끝나는 시간 계산 (기본 15시)
         int maxEndTime = 15;
@@ -152,5 +171,55 @@ public class A1Fragment extends Fragment {
 
         Type type = new TypeToken<List<Schedule>>() {}.getType();
         return new Gson().fromJson(jsonString, type);
+    }
+    private void saveScheduleList(List<Schedule> list) {
+        SharedPreferences sharedPreferences = getActivity().getSharedPreferences("TimeTablePrefs", Context.MODE_PRIVATE);
+        String jsonString = new Gson().toJson(list);
+        sharedPreferences.edit().putString("my_schedule_key", jsonString).apply();
+    }
+    private void showAddScheduleDialog() {
+        // 1. XML 레이아웃을 다이얼로그 뷰로 불러오기
+        View dialogView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_add_schedule, null);
+
+        // 2. ID를 통해 뷰 찾기
+        Spinner daySpinner = dialogView.findViewById(R.id.daySpinner);
+        EditText subjectInput = dialogView.findViewById(R.id.subjectInput);
+        EditText startInput = dialogView.findViewById(R.id.startInput);
+        EditText endInput = dialogView.findViewById(R.id.endInput);
+
+        // 스피너 설정
+        String[] days = {"월", "화", "수", "목", "금", "토", "일"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_dropdown_item, days);
+        daySpinner.setAdapter(adapter);
+
+        // 3. 다이얼로그 띄우기
+        new AlertDialog.Builder(getContext())
+                .setTitle("일정 추가")
+                .setView(dialogView) // 아까 만든 XML을 입힘
+                .setPositiveButton("제출", (dialog, which) -> {
+                    try {
+                        String subject = subjectInput.getText().toString();
+                        int start = Integer.parseInt(startInput.getText().toString());
+                        int end = Integer.parseInt(endInput.getText().toString());
+                        int dayIndex = daySpinner.getSelectedItemPosition();
+
+                        // 날짜 매핑 (오늘이 260528(목)이므로, 월요일(25)부터 일요일(31)까지 자동 계산)
+                        String date = "2605" + (25 + dayIndex);
+
+                        // 기존 데이터 가져와서 추가
+                        List<Schedule> currentList = loadScheduleData();
+                        ArrayList<Schedule> newList = new ArrayList<>(currentList);
+                        newList.add(new Schedule(subject, date, start, end));
+
+                        // 저장 및 재렌더링
+                        saveScheduleList(newList);
+                        renderTimetable(getView(), newList);
+                        Toast.makeText(getContext(), "추가되었습니다!", Toast.LENGTH_SHORT).show();
+                    } catch (Exception e) {
+                        Toast.makeText(getContext(), "입력 형식을 확인하세요!", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("취소", null)
+                .show();
     }
 }
