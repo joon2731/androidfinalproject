@@ -1,0 +1,24 @@
+# Gradle 빌드 결과물 및 캐시
+.gradle/
+build/
+/*/build/
+
+# IDE(안드로이드 스튜디오) 설정 파일
+.idea/
+*.iml
+*.ipr
+*.iws
+.navigation/
+
+# 로컬 환경 설정 및 보안 키 (★깃허브 업로드 절대 금지)
+local.properties
+.DS_Store
+captures/
+.externalNativeBuild/
+.cxx/
+
+# 컴파일된 결과물 및 로그
+*.apk
+*.ap_
+*.asec
+*.log
