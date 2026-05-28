@@ -2,7 +2,6 @@ package com.example.project_cosync4;
 
 import android.app.AlertDialog;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.Gravity;
@@ -23,14 +22,12 @@ import androidx.fragment.app.Fragment;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
-import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class A1Fragment extends Fragment {
 
-    // 1. 데이터 클래스
     public static class Schedule {
         String subject, date;
         int startTime, endTime;
@@ -40,7 +37,6 @@ public class A1Fragment extends Fragment {
             this.startTime = startTime; this.endTime = endTime;
         }
 
-        // 삭제/수정을 위해 필수 (객체 비교용)
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -62,26 +58,26 @@ public class A1Fragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         view.findViewById(R.id.btn_add).setOnClickListener(v -> showAddScheduleDialog());
-        renderTimetable(view, loadScheduleData());
+        refreshTimetable();
     }
 
     @Override
     public void onResume() {
         super.onResume();
-        renderTimetable(getView(), loadScheduleData());
+        refreshTimetable();
     }
 
-    // 2. 시간표 렌더링 로직
+    private void refreshTimetable() {
+        View view = getView();
+        if (view != null) renderTimetable(view, loadScheduleData());
+    }
+
     private void renderTimetable(View view, List<Schedule> schedules) {
-        int maxEndTime = 15; // 최소 15시
-        for (Schedule s : schedules) {
-            if (s.endTime > maxEndTime) {
-                maxEndTime = s.endTime;
-            }
-        }
+        int maxEndTime = 15;
         for (Schedule s : schedules) if (s.endTime > maxEndTime) maxEndTime = s.endTime;
 
         LinearLayout timeColumn = view.findViewById(R.id.col_time);
+        if (timeColumn == null) return;
         timeColumn.removeAllViews();
         for (int hour = 9; hour < maxEndTime; hour++) {
             timeColumn.addView(createBlock(String.valueOf(hour), 1, "#FFFFFF", null));
@@ -92,6 +88,7 @@ public class A1Fragment extends Fragment {
 
         for (int i = 0; i < 7; i++) {
             LinearLayout column = view.findViewById(columnIds[i]);
+            if (column == null) continue;
             column.removeAllViews();
             String targetDate = dateForColumn[i];
             int currentHour = 9;
@@ -111,24 +108,20 @@ public class A1Fragment extends Fragment {
         }
     }
 
-    // 3. 블록 조립 및 클릭 이벤트
     private TextView createBlock(String text, int duration, String colorHex, Schedule schedule) {
         TextView textView = new TextView(getContext());
         float density = getResources().getDisplayMetrics().density;
         int height = (int) (((60 * density) + 2) * duration - 2);
-
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, height);
         params.setMargins(1, 1, 1, 1);
         textView.setLayoutParams(params);
         textView.setText(text);
         textView.setGravity(Gravity.CENTER);
         textView.setBackgroundColor(Color.parseColor(colorHex));
-
         if (schedule != null) textView.setOnClickListener(v -> showEditDeleteDialog(schedule));
         return textView;
     }
 
-    // 4. 추가/수정/삭제 다이얼로그
     private void showAddScheduleDialog() {
         View v = LayoutInflater.from(getContext()).inflate(R.layout.dialog_add_schedule, null);
         Spinner daySpinner = v.findViewById(R.id.daySpinner);
@@ -136,23 +129,25 @@ public class A1Fragment extends Fragment {
 
         new AlertDialog.Builder(getContext()).setTitle("일정 추가").setView(v)
                 .setPositiveButton("제출", (d, w) -> {
-                    String sub = ((EditText)v.findViewById(R.id.subjectInput)).getText().toString();
-                    int st = Integer.parseInt(((EditText)v.findViewById(R.id.startInput)).getText().toString());
-                    int en = Integer.parseInt(((EditText)v.findViewById(R.id.endInput)).getText().toString());
-                    String date = "2605" + (25 + daySpinner.getSelectedItemPosition());
+                    try {
+                        String sub = ((EditText)v.findViewById(R.id.subjectInput)).getText().toString();
+                        int st = Integer.parseInt(((EditText)v.findViewById(R.id.startInput)).getText().toString());
+                        int en = Integer.parseInt(((EditText)v.findViewById(R.id.endInput)).getText().toString());
 
-                    List<Schedule> list = loadScheduleData();
-                    list.add(new Schedule(sub, date, st, en));
-                    saveScheduleList(list);
-                    renderTimetable(getView(), list);
+                        if (st >= en || st < 9 || en > 24) { Toast.makeText(getContext(), "시간 범위를 확인하세요!", Toast.LENGTH_SHORT).show(); return; }
+
+                        String date = "2605" + (25 + daySpinner.getSelectedItemPosition());
+                        List<Schedule> list = loadScheduleData();
+                        if (isOverlapping(list, date, st, en, null)) Toast.makeText(getContext(), "시간이 겹칩니다!", Toast.LENGTH_SHORT).show();
+                        else { list.add(new Schedule(sub, date, st, en)); saveScheduleList(list); refreshTimetable(); d.dismiss(); }
+                    } catch (Exception e) { Toast.makeText(getContext(), "입력 오류", Toast.LENGTH_SHORT).show(); }
                 }).show();
     }
 
     private void showEditDeleteDialog(Schedule schedule) {
         new AlertDialog.Builder(getContext()).setTitle("일정 관리")
                 .setItems(new String[]{"수정", "삭제"}, (d, which) -> {
-                    if (which == 0) showEditDialog(schedule);
-                    else deleteSchedule(schedule);
+                    if (which == 0) showEditDialog(schedule); else deleteSchedule(schedule);
                 }).show();
     }
 
@@ -164,13 +159,17 @@ public class A1Fragment extends Fragment {
 
         new AlertDialog.Builder(getContext()).setTitle("일정 수정").setView(v)
                 .setPositiveButton("수정", (d, w) -> {
-                    List<Schedule> list = loadScheduleData();
-                    list.remove(schedule);
-                    list.add(new Schedule(((EditText)v.findViewById(R.id.subjectInput)).getText().toString(), schedule.date,
-                            Integer.parseInt(((EditText)v.findViewById(R.id.startInput)).getText().toString()),
-                            Integer.parseInt(((EditText)v.findViewById(R.id.endInput)).getText().toString())));
-                    saveScheduleList(list);
-                    renderTimetable(getView(), list);
+                    try {
+                        String sub = ((EditText)v.findViewById(R.id.subjectInput)).getText().toString();
+                        int st = Integer.parseInt(((EditText)v.findViewById(R.id.startInput)).getText().toString());
+                        int en = Integer.parseInt(((EditText)v.findViewById(R.id.endInput)).getText().toString());
+
+                        if (st >= en || st < 9 || en > 24) { Toast.makeText(getContext(), "시간 범위를 확인하세요!", Toast.LENGTH_SHORT).show(); return; }
+
+                        List<Schedule> list = loadScheduleData();
+                        if (isOverlapping(list, schedule.date, st, en, schedule)) Toast.makeText(getContext(), "시간이 겹칩니다!", Toast.LENGTH_SHORT).show();
+                        else { list.remove(schedule); list.add(new Schedule(sub, schedule.date, st, en)); saveScheduleList(list); refreshTimetable(); d.dismiss(); }
+                    } catch (Exception e) { Toast.makeText(getContext(), "입력 오류", Toast.LENGTH_SHORT).show(); }
                 }).show();
     }
 
@@ -178,11 +177,9 @@ public class A1Fragment extends Fragment {
         List<Schedule> list = loadScheduleData();
         list.remove(schedule);
         saveScheduleList(list);
-        renderTimetable(getView(), list);
-        Toast.makeText(getContext(), "삭제 완료", Toast.LENGTH_SHORT).show();
+        refreshTimetable();
     }
 
-    // 5. 저장 및 불러오기
     private void saveScheduleList(List<Schedule> list) {
         getActivity().getSharedPreferences("TimeTablePrefs", Context.MODE_PRIVATE).edit()
                 .putString("my_schedule_key", new Gson().toJson(list)).apply();
@@ -192,5 +189,13 @@ public class A1Fragment extends Fragment {
         String json = getActivity().getSharedPreferences("TimeTablePrefs", Context.MODE_PRIVATE)
                 .getString("my_schedule_key", null);
         return json == null ? new ArrayList<>() : new Gson().fromJson(json, new TypeToken<List<Schedule>>(){}.getType());
+    }
+
+    private boolean isOverlapping(List<Schedule> list, String date, int start, int end, Schedule ignore) {
+        for (Schedule s : list) {
+            if (ignore != null && s.equals(ignore)) continue;
+            if (s.date.equals(date) && start < s.endTime && end > s.startTime) return true;
+        }
+        return false;
     }
 }
