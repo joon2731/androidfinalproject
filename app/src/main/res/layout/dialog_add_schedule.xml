@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <Spinner android:id="@+id/daySpinner" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    <EditText android:id="@+id/subjectInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="과목명" />
+    <EditText android:id="@+id/startInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="시작 시간 (9~24)" android:inputType="number" />
+    <EditText android:id="@+id/endInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="끝 시간 (9~24)" android:inputType="number" />
+
+</LinearLayout>

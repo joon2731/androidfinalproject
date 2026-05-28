@@ -59,6 +59,7 @@ public class A2Fragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
+        // onViewCreated 안에 추가 view.findViewById(R.id.btn_add).setOnClickListener(v -> showAddScheduleDialog());
         return inflater.inflate(R.layout.fragment_a2, container, false);
     }
 }
