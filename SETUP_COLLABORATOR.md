@@ -1,57 +1,79 @@
-# 🤝 Antigravity용 깃허브 협업 및 안드로이드 프로젝트 연결 가이드
+# 🤝 Antigravity용 안드로이드 프로젝트 깃허브 자동 연동 가이드
 
-이 파일은 **Antigravity(AI 코딩 어시스턴트)**가 읽고 사용자의 컴퓨터에 있는 **기존 안드로이드 스튜디오 프로젝트**를 이 깃허브 저장소와 깔끔하게 연결하도록 안내하는 가이드라인입니다.
-
-친구분께서 안드로이드 스튜디오 프로젝트 폴더를 VS Code(또는 Antigravity가 활성화된 에디터)로 열고 아래와 같이 요청하면, AI가 이 파일을 참고하여 모든 연동을 자동으로 수행합니다.
-
-> **🤖 AI에게 입력할 질문 예시:**
-> *"여기 있는 SETUP_COLLABORATOR.md 파일을 읽고, 내 로컬 안드로이드 프로젝트를 이 깃허브 저장소에 연결하고 첫 푸시까지 완료해줘."*
+이 파일은 **Antigravity(AI 코딩 어시스턴트)**가 친구분의 컴퓨터에서 실행될 때, 사용자의 상황을 파악하고 최적의 방식으로 안드로이드 프로젝트를 이 깃허브 저장소와 연동하도록 안내하는 자동화 지침서입니다.
 
 ---
 
-## 📋 Antigravity 행동 지침 (AI Instructions)
-이 파일을 읽는 AI 어시스턴트(Antigravity)는 사용자의 로컬 안드로이드 프로젝트 폴더에서 아래 단계에 따라 작업을 수행하세요.
+## 🤖 AI 어시스턴트(Antigravity) 행동 지침
 
-### 1단계: Git 사용자 전역 설정 확인
-사용자 정보가 설정되어 있지 않다면 설정을 도와주세요.
-```bash
-# 이름/이메일 설정 확인
-git config --global user.name
-git config --global user.email
-```
+이 파일을 읽는 AI 어시스턴트는 다음 순서에 따라 사용자에게 질문하고 작업을 자동 수행하세요.
 
-### 2단계: 로컬 저장소 초기화 및 기본 브랜치 설정
-안드로이드 프로젝트 폴더에 `.git` 폴더가 없다면 초기화하고, 기본 브랜치를 `main`으로 설정하세요.
-```bash
-git init
-git checkout -b main 2>/dev/null || git branch -M main
-```
+### [1단계] 사용자 안드로이드 프로젝트 폴더 경로 파악하기
+1. 사용자에게 현재 작업 중인 **안드로이드 프로젝트 폴더의 경로**를 물어보세요. (예: `~/AndroidStudioProjects/MyApplication` 또는 바탕화면의 특정 폴더)
+2. 사용자가 경로를 알려주면, 해당 경로가 유효한지 확인하고 다음 두 가지 방식 중 사용자가 원하는 방식을 제안하여 진행하세요.
 
-### 3단계: 안드로이드 표준 .gitignore 파일 검증
-안드로이드 프로젝트 빌드 파일 등이 깃허브에 올라가지 않도록 `.gitignore` 파일이 존재하는지 확인하고, 없다면 표준 안드로이드 `.gitignore` 설정을 적용해 주세요.
-* **필수 제외 항목**: `.gradle/`, `build/`, `local.properties`, `.idea/workspace.xml` 등
+---
 
-### 4단계: 첫 로컬 커밋 생성
-원격 저장소와 합치기 전에, 현재 안드로이드 프로젝트의 소스 코드를 먼저 로컬 커밋으로 만듭니다.
-```bash
-git add .
-git commit -m "feat: 안드로이드 프로젝트 초기 코드 추가"
-```
+### [2단계] 연동 방식 선택 및 실행
 
-### 5단계: 원격 저장소 연결 및 이력 병합 (Rebase)
-원격 저장소를 등록하고, 깃허브에 먼저 올라와 있는 파일들(`test.html`, `SETUP_COLLABORATOR.md` 등)을 가져와 병합합니다.
-```bash
-# 1. 원격 저장소 등록 (이미 등록되어 있다면 삭제 후 재등록)
-git remote remove origin 2>/dev/null || true
-git remote add origin https://github.com/joon2731/androidfinalproject
+#### 💡 방식 A: 기존 안드로이드 프로젝트 폴더에 깃허브 연동하기 (기존 폴더 유지)
+사용자가 기존에 작업하던 폴더에서 계속 개발하기를 원할 때 사용합니다. AI는 사용자의 안드로이드 프로젝트 폴더로 작업 디렉토리(Cwd)를 변경하고 아래 명령어를 순서대로 실행하세요.
 
-# 2. 원격 저장소의 main 브랜치 이력을 가져와서 로컬 커밋 위에 리베이스(Rebase)합니다.
-# 이렇게 하면 깃허브의 파일들과 로컬 안드로이드 파일들이 에러 없이 깔끔하게 합쳐집니다.
-git pull origin main --rebase
-```
+1. **Git 초기화 및 기본 설정**:
+   ```bash
+   # Git 초기화 및 브랜치명을 main으로 설정
+   git init
+   git checkout -b main 2>/dev/null || git branch -M main
+   
+   # Git 전역 설정(이름, 이메일) 확인 및 설정 요구
+   git config --global user.name
+   git config --global user.email
+   ```
 
-### 6단계: 원격 저장소로 최종 푸시
-병합이 완료된 최종 코드를 깃허브 저장소로 푸시합니다.
-```bash
-git push -u origin main
-```
+2. **안드로이드 표준 .gitignore 생성/검증**:
+   프로젝트 루트에 `.gitignore`가 없다면 생성하고, 아래 빌드 캐시 및 로컬 설정 파일들을 반드시 제외하도록 구성하세요.
+   * `build/`, `.gradle/`, `local.properties`, `.idea/workspace.xml` 등
+
+3. **로컬 파일 커밋**:
+   ```bash
+   git add .
+   git commit -m "feat: 안드로이드 프로젝트 초기 소스코드 추가"
+   ```
+
+4. **원격 저장소 연결 및 이력 병합**:
+   ```bash
+   # 원격 저장소 주소 등록
+   git remote remove origin 2>/dev/null || true
+   git remote add origin https://github.com/joon2731/androidfinalproject.git
+   
+   # 깃허브에 있는 파일들(test.html 등)을 가져와 로컬 안드로이드 코드와 합치기 (Rebase)
+   git pull origin main --rebase
+   ```
+
+5. **최종 깃허브 푸시**:
+   ```bash
+   git push -u origin main
+   ```
+
+---
+
+#### 💡 방식 B: 이 클론된 폴더로 안드로이드 파일 복사하기 (클론 폴더 기준 - 가장 안전함)
+원격 저장소 이력 병합 과정에서 발생할 수 있는 Git 충돌을 피하기 위해, 친구분의 안드로이드 프로젝트 파일들을 이 클론된 저장소 폴더 안으로 복사하여 올리는 방식입니다.
+
+1. **안드로이드 소스 복사**:
+   사용자가 알려준 기존 안드로이드 프로젝트 폴더 안의 내용물(단, `.git`, `build`, `.gradle`, `local.properties` 등의 캐시 폴더는 제외)을 **현재 이 폴더(저장소가 클론된 폴더)**로 복사(Copy)합니다.
+   
+2. **Git 설정 확인 및 커밋/푸시**:
+   ```bash
+   # 1. 복사된 안드로이드 소스들을 추가하고 커밋
+   git add .
+   git commit -m "feat: 안드로이드 프로젝트 소스 복사 및 추가"
+   
+   # 2. 깃허브로 푸시
+   git push origin main
+   ```
+
+---
+
+### [3단계] 검증 및 완료 안내
+모든 과정이 끝나면, 깃허브 저장소에 안드로이드 소스코드(예: `app/src`, `build.gradle` 등)가 정상적으로 업로드되었는지 확인 후 사용자에게 완료 상태를 안내하세요.
