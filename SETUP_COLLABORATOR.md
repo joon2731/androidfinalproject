@@ -1,53 +1,57 @@
-# 🤝 Antigravity용 깃허브 협업 설정 가이드 (SETUP_COLLABORATOR.md)
+# 🤝 Antigravity용 깃허브 협업 및 안드로이드 프로젝트 연결 가이드
 
-이 파일은 **Antigravity(AI 코딩 어시스턴트)**가 읽고 해당 사용자의 컴퓨터 환경에 맞춰 Git 설정을 한 번에 도와주도록 작성된 가이드라인입니다.
+이 파일은 **Antigravity(AI 코딩 어시스턴트)**가 읽고 사용자의 컴퓨터에 있는 **기존 안드로이드 스튜디오 프로젝트**를 이 깃허브 저장소와 깔끔하게 연결하도록 안내하는 가이드라인입니다.
 
-친구분께서 컴퓨터에 Antigravity를 켜고 이 프로젝트 폴더를 연 뒤, 아래와 같이 질문하면 AI가 이 파일의 내용을 보고 알아서 설정을 진행할 것입니다.
+친구분께서 안드로이드 스튜디오 프로젝트 폴더를 VS Code(또는 Antigravity가 활성화된 에디터)로 열고 아래와 같이 요청하면, AI가 이 파일을 참고하여 모든 연동을 자동으로 수행합니다.
 
 > **🤖 AI에게 입력할 질문 예시:**
-> *"여기 있는 SETUP_COLLABORATOR.md 파일을 읽고 내 컴퓨터에 맞게 Git 환경을 세팅해줘."*
+> *"여기 있는 SETUP_COLLABORATOR.md 파일을 읽고, 내 로컬 안드로이드 프로젝트를 이 깃허브 저장소에 연결하고 첫 푸시까지 완료해줘."*
 
 ---
 
 ## 📋 Antigravity 행동 지침 (AI Instructions)
-이 파일을 읽는 AI 어시스턴트(Antigravity)는 아래 가이드에 따라 사용자 컴퓨터의 Git 환경을 점검하고 설정을 완료해야 합니다.
+이 파일을 읽는 AI 어시스턴트(Antigravity)는 사용자의 로컬 안드로이드 프로젝트 폴더에서 아래 단계에 따라 작업을 수행하세요.
 
-### 1단계: 사용자 Git 전역 설정 확인 및 등록
-사용자의 이름과 이메일이 설정되어 있는지 확인하고, 비어있다면 사용자에게 입력을 요청하여 설정하세요.
-* **이름 확인**: `git config --global user.name`
-* **이메일 확인**: `git config --global user.email`
-
-설정이 안 되어 있다면 다음 명령어를 사용자 정보에 맞게 실행하세요:
+### 1단계: Git 사용자 전역 설정 확인
+사용자 정보가 설정되어 있지 않다면 설정을 도와주세요.
 ```bash
-git config --global user.name "사용자_이름"
-git config --global user.email "사용자_이메일"
+# 이름/이메일 설정 확인
+git config --global user.name
+git config --global user.email
 ```
 
-### 2단계: 저장소 연결(Git Remote) 상태 점검
-프로젝트 폴더가 원격 저장소(`https://github.com/joon2731/androidfinalproject`)와 올바르게 연결되어 있는지 확인하세요.
-* **원격 확인**: `git remote -v`
-
-만약 연결이 되어 있지 않다면 아래 명령어를 실행하여 원격 저장소를 추가하세요:
+### 2단계: 로컬 저장소 초기화 및 기본 브랜치 설정
+안드로이드 프로젝트 폴더에 `.git` 폴더가 없다면 초기화하고, 기본 브랜치를 `main`으로 설정하세요.
 ```bash
+git init
+git checkout -b main 2>/dev/null || git branch -M main
+```
+
+### 3단계: 안드로이드 표준 .gitignore 파일 검증
+안드로이드 프로젝트 빌드 파일 등이 깃허브에 올라가지 않도록 `.gitignore` 파일이 존재하는지 확인하고, 없다면 표준 안드로이드 `.gitignore` 설정을 적용해 주세요.
+* **필수 제외 항목**: `.gradle/`, `build/`, `local.properties`, `.idea/workspace.xml` 등
+
+### 4단계: 첫 로컬 커밋 생성
+원격 저장소와 합치기 전에, 현재 안드로이드 프로젝트의 소스 코드를 먼저 로컬 커밋으로 만듭니다.
+```bash
+git add .
+git commit -m "feat: 안드로이드 프로젝트 초기 코드 추가"
+```
+
+### 5단계: 원격 저장소 연결 및 이력 병합 (Rebase)
+원격 저장소를 등록하고, 깃허브에 먼저 올라와 있는 파일들(`test.html`, `SETUP_COLLABORATOR.md` 등)을 가져와 병합합니다.
+```bash
+# 1. 원격 저장소 등록 (이미 등록되어 있다면 삭제 후 재등록)
 git remote remove origin 2>/dev/null || true
 git remote add origin https://github.com/joon2731/androidfinalproject
+
+# 2. 원격 저장소의 main 브랜치 이력을 가져와서 로컬 커밋 위에 리베이스(Rebase)합니다.
+# 이렇게 하면 깃허브의 파일들과 로컬 안드로이드 파일들이 에러 없이 깔끔하게 합쳐집니다.
+git pull origin main --rebase
 ```
 
-### 3단계: 최신 코드 동기화 및 기본 브랜치 설정
-기본 브랜치가 `main`으로 잘 설정되어 있는지 확인하고 최신 코드를 다운로드합니다.
+### 6단계: 원격 저장소로 최종 푸시
+병합이 완료된 최종 코드를 깃허브 저장소로 푸시합니다.
 ```bash
-# 기본 브랜치 이름을 main으로 일치시킵니다.
-git checkout -b main 2>/dev/null || git branch -M main
-
-# 원격 저장소의 최신 커밋 내역을 가져옵니다.
-git pull origin main
+git push -u origin main
 ```
-
----
-
-## 💡 협업 팁 (친구분을 위한 안내)
-* **협업할 때는 전용 브랜치를 만드는 것이 좋습니다**: 
-  `main` 브랜치에 직접 올리는 것보다 본인의 이름으로 브랜치를 만들어 작업한 뒤 합치는 것이 안전합니다.
-  ```bash
-  # 예: git checkout -b feature/my-name
-  ```
