@@ -25,9 +25,12 @@ import com.google.gson.reflect.TypeToken;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.Calendar;
+import java.text.SimpleDateFormat;
 
 public class A1Fragment extends Fragment {
 
+    private Calendar baseCalendar = Calendar.getInstance();
     public static class Schedule {
         String subject, date;
         int startTime, endTime;
@@ -57,7 +60,13 @@ public class A1Fragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        // 기존 + 버튼
         view.findViewById(R.id.btn_add).setOnClickListener(v -> showAddScheduleDialog());
+
+        // 🌟 핵심: 이 코드가 있어야 버튼을 눌렀을 때 반응합니다!
+        view.findViewById(R.id.btn_select_date).setOnClickListener(v -> showDateSelectDialog());
+
         refreshTimetable();
     }
 
@@ -69,7 +78,18 @@ public class A1Fragment extends Fragment {
 
     private void refreshTimetable() {
         View view = getView();
-        if (view != null) renderTimetable(view, loadScheduleData());
+        if (view != null) {
+            // 1. 날짜 범위 텍스트 업데이트 (예: 06/08 ~ 06/14)
+            String[] dates = getThisWeekDates();
+            TextView tvDate = view.findViewById(R.id.tv_current_date);
+            if (tvDate != null) {
+                tvDate.setText(dates[0].substring(2,4) + "." + dates[0].substring(4,6) + " ~ " +
+                        dates[6].substring(2,4) + "." + dates[6].substring(4,6));
+            }
+
+            // 2. 시간표 렌더링
+            renderTimetable(view, loadScheduleData());
+        }
     }
 
     private void renderTimetable(View view, List<Schedule> schedules) {
@@ -84,7 +104,8 @@ public class A1Fragment extends Fragment {
         }
 
         int[] columnIds = {R.id.col_mon, R.id.col_tue, R.id.col_wed, R.id.col_thu, R.id.col_fri, R.id.col_sat, R.id.col_sun};
-        String[] dateForColumn = {"260525", "260526", "260527", "260528", "260529", "260530", "260531"};
+        // 🌟 자동 계산된 날짜 사용
+        String[] dateForColumn = getThisWeekDates();
 
         for (int i = 0; i < 7; i++) {
             LinearLayout column = view.findViewById(columnIds[i]);
@@ -133,10 +154,10 @@ public class A1Fragment extends Fragment {
                         String sub = ((EditText)v.findViewById(R.id.subjectInput)).getText().toString();
                         int st = Integer.parseInt(((EditText)v.findViewById(R.id.startInput)).getText().toString());
                         int en = Integer.parseInt(((EditText)v.findViewById(R.id.endInput)).getText().toString());
+                        if (st >= en || st < 9 || en > 24) { Toast.makeText(getContext(), "시간 범위 확인!", Toast.LENGTH_SHORT).show(); return; }
 
-                        if (st >= en || st < 9 || en > 24) { Toast.makeText(getContext(), "시간 범위를 확인하세요!", Toast.LENGTH_SHORT).show(); return; }
-
-                        String date = "2605" + (25 + daySpinner.getSelectedItemPosition());
+                        // 🌟 요일별 날짜 매핑
+                        String date = getThisWeekDates()[daySpinner.getSelectedItemPosition()];
                         List<Schedule> list = loadScheduleData();
                         if (isOverlapping(list, date, st, en, null)) Toast.makeText(getContext(), "시간이 겹칩니다!", Toast.LENGTH_SHORT).show();
                         else { list.add(new Schedule(sub, date, st, en)); saveScheduleList(list); refreshTimetable(); d.dismiss(); }
@@ -153,22 +174,36 @@ public class A1Fragment extends Fragment {
 
     private void showEditDialog(Schedule schedule) {
         View v = LayoutInflater.from(getContext()).inflate(R.layout.dialog_add_schedule, null);
+        Spinner daySpinner = v.findViewById(R.id.daySpinner);
+        daySpinner.setAdapter(new ArrayAdapter<>(getContext(), android.R.layout.simple_spinner_dropdown_item, new String[]{"월","화","수","목","금","토","일"}));
+
+        // 1. 기존 데이터 세팅
         ((EditText)v.findViewById(R.id.subjectInput)).setText(schedule.subject);
         ((EditText)v.findViewById(R.id.startInput)).setText(String.valueOf(schedule.startTime));
         ((EditText)v.findViewById(R.id.endInput)).setText(String.valueOf(schedule.endTime));
 
+        // 🌟 2. 수정 시 저장되어 있던 요일을 스피너에서 미리 선택하게 함
+        String[] thisWeek = getThisWeekDates();
+        for (int i = 0; i < thisWeek.length; i++) {
+            if (thisWeek[i].equals(schedule.date)) {
+                daySpinner.setSelection(i);
+                break;
+            }
+        }
+
         new AlertDialog.Builder(getContext()).setTitle("일정 수정").setView(v)
                 .setPositiveButton("수정", (d, w) -> {
+                    // ... (이후 수정 로직은 그대로 유지)
                     try {
                         String sub = ((EditText)v.findViewById(R.id.subjectInput)).getText().toString();
                         int st = Integer.parseInt(((EditText)v.findViewById(R.id.startInput)).getText().toString());
                         int en = Integer.parseInt(((EditText)v.findViewById(R.id.endInput)).getText().toString());
+                        if (st >= en || st < 9 || en > 24) { Toast.makeText(getContext(), "시간 범위 확인!", Toast.LENGTH_SHORT).show(); return; }
 
-                        if (st >= en || st < 9 || en > 24) { Toast.makeText(getContext(), "시간 범위를 확인하세요!", Toast.LENGTH_SHORT).show(); return; }
-
+                        String newDate = getThisWeekDates()[daySpinner.getSelectedItemPosition()];
                         List<Schedule> list = loadScheduleData();
-                        if (isOverlapping(list, schedule.date, st, en, schedule)) Toast.makeText(getContext(), "시간이 겹칩니다!", Toast.LENGTH_SHORT).show();
-                        else { list.remove(schedule); list.add(new Schedule(sub, schedule.date, st, en)); saveScheduleList(list); refreshTimetable(); d.dismiss(); }
+                        if (isOverlapping(list, newDate, st, en, schedule)) Toast.makeText(getContext(), "겹칩니다!", Toast.LENGTH_SHORT).show();
+                        else { list.remove(schedule); list.add(new Schedule(sub, newDate, st, en)); saveScheduleList(list); refreshTimetable(); d.dismiss(); }
                     } catch (Exception e) { Toast.makeText(getContext(), "입력 오류", Toast.LENGTH_SHORT).show(); }
                 }).show();
     }
@@ -197,5 +232,50 @@ public class A1Fragment extends Fragment {
             if (s.date.equals(date) && start < s.endTime && end > s.startTime) return true;
         }
         return false;
+    }
+
+    private String[] getThisWeekDates() {
+        String[] dates = new String[7];
+        // 🌟 baseCalendar를 복제해서 사용 (원본은 유지)
+        Calendar cal = (Calendar) baseCalendar.clone();
+
+        // 해당 날짜가 속한 주의 월요일로 이동
+        if (cal.get(Calendar.DAY_OF_WEEK) == Calendar.SUNDAY) {
+            cal.add(Calendar.DATE, -6);
+        } else {
+            cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        }
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyMMdd");
+        for (int i = 0; i < 7; i++) {
+            dates[i] = sdf.format(cal.getTime());
+            cal.add(Calendar.DATE, 1);
+        }
+        return dates;
+    }
+    private void showDateSelectDialog() {
+        View v = LayoutInflater.from(getContext()).inflate(R.layout.dialog_select_date, null);
+
+        new AlertDialog.Builder(getContext())
+                .setTitle("날짜 이동")
+                .setView(v)
+                .setPositiveButton("확인", (d, which) -> {
+                    try {
+                        int y = Integer.parseInt(((EditText)v.findViewById(R.id.edit_year)).getText().toString());
+                        int m = Integer.parseInt(((EditText)v.findViewById(R.id.edit_month)).getText().toString()) - 1;
+                        int day = Integer.parseInt(((EditText)v.findViewById(R.id.edit_day)).getText().toString());
+
+                        // 🌟 baseCalendar에 값 설정
+                        baseCalendar.set(y, m, day);
+                        refreshTimetable();
+                    } catch (Exception e) { Toast.makeText(getContext(), "날짜를 확인하세요!", Toast.LENGTH_SHORT).show(); }
+                })
+                .setNeutralButton("오늘로 이동", (d, which) -> {
+                    baseCalendar = Calendar.getInstance(); // 오늘로 설정
+                    refreshTimetable(); // 화면 갱신
+                    Toast.makeText(getContext(), "오늘 날짜로 이동했습니다.", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("취소", null)
+                .show();
     }
 }
