@@ -117,7 +117,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="에브리타임 연동"
+                        android:text="학교 시간표 연동"
                         android:textSize="14sp" />
 
                     <Button
@@ -125,7 +125,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="연동"
-                        android:enabled="false" />
+                        android:enabled="true" />
                 </LinearLayout>
 
                 <View
